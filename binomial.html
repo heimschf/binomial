@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binomialverteilung</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f4ef;
+  --surface: #ffffff;
+  --surface2: #f0ece4;
+  --border: #e0d8cc;
+  --text: #1a1612;
+  --muted: #8a7f72;
+  --accent: #c8401a;
+  --accent2: #2a6e8a;
+  --accent3: #5a8a2a;
+  --bar: #c8401a;
+  --bar-hi: #e85a28;
+  --bar-cum: rgba(42,110,138,0.25);
+  --correct: #3a7a3a;
+  --wrong: #c8401a;
+  --shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Decorative header strip */
+.header-strip {
+  background: var(--text);
+  color: var(--bg);
+  padding: 2.5rem 2rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.header-strip::before {
+  content: 'B(n,p)';
+  position: absolute;
+  right: -0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'DM Serif Display', serif;
+  font-size: 8rem;
+  opacity: 0.06;
+  line-height: 1;
+  pointer-events: none;
+  color: #fff;
+}
+
+.header-strip h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.header-strip .formula {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  color: rgba(247,244,239,0.55);
+  margin-top: 0.4rem;
+  letter-spacing: 0.05em;
+}
+
+/* Nav tabs */
+.nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0;
+  padding: 0 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.nav-tab {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Main layout */
+.main { max-width: 900px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+.card-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.2rem;
+  font-weight: 400;
+  margin-bottom: 1.25rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-title .tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Sliders */
+.param-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 500px) { .param-grid { grid-template-columns: 1fr; } }
+
+.param-item label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.param-item label span {
+  font-family: 'DM Mono', monospace;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+input[type=range] {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: transform 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+/* Stats row */
+.stats-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.stat-box {
+  flex: 1;
+  min-width: 100px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+
+.stat-box .val {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--accent2);
+  display: block;
+}
+
+.stat-box .lbl {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+
+/* Canvas */
+canvas {
+  width: 100%;
+  height: 260px;
+  display: block;
+  border-radius: 6px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.legend-dot {
+  width: 12px; height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Toggle */
+.toggle-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.toggle-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.toggle-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.toggle-btn:hover:not(.active) { border-color: var(--muted); color: var(--text); }
+
+/* --- RECHNER --- */
+.calc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+@media (max-width: 500px) { .calc-grid { grid-template-columns: 1fr; } }
+
+.form-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.95rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--accent2); }
+
+.btn-calc {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent2);
+  color: white;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-calc:hover { background: #1a5a78; }
+
+.result-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent2);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.9rem;
+  display: none;
+}
+
+.result-box .result-val {
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--accent2);
+  display: block;
+  margin: 0.25rem 0;
+}
+
+.result-box .result-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.result-box .result-formula {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+/* --- QUIZ --- */
+.quiz-progress {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 1.5rem;
+}
+
+.progress-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.3s;
+}
+.progress-dot.done-correct { background: var(--correct); }
+.progress-dot.done-wrong { background: var(--wrong); }
+.progress-dot.current { background: var(--accent2); }
+
+.question-num {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.question-text {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.15rem;
+  font-weight: 400;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+.question-context {
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--surface2);
+  border-left: 3px solid var(--border);
+  padding: 0.6rem 0.9rem;
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 1.25rem;
+  font-family: 'DM Mono', monospace;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.option-btn {
+  text-align: left;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.option-btn:hover:not(:disabled) { border-color: var(--accent2); background: #f0f6fa; }
+
+.option-btn .opt-letter {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+  transition: all 0.15s;
+}
+
+.option-btn.selected { border-color: var(--accent2); background: #eef5fa; }
+.option-btn.correct { border-color: var(--correct); background: #eef6ee; }
+.option-btn.correct .opt-letter { background: var(--correct); color: white; border-color: var(--correct); }
+.option-btn.wrong { border-color: var(--wrong); background: #faeee e; }
+.option-btn.wrong { border-color: var(--wrong); background: #faeee0; }
+.option-btn.wrong .opt-letter { background: var(--wrong); color: white; border-color: var(--wrong); }
+.option-btn:disabled { cursor: default; }
+
+.feedback-box {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  display: none;
+}
+.feedback-box.correct { background: #eef6ee; border: 1px solid #a0c8a0; color: #2a5a2a; }
+.feedback-box.wrong { background: #faeee0; border: 1px solid #d8a080; color: #6a2a10; }
+
+.btn-next {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--text);
+  color: var(--bg);
+  cursor: pointer;
+  display: none;
+  transition: opacity 0.15s;
+}
+.btn-next:hover { opacity: 0.8; }
+
+.quiz-score-card {
+  text-align: center;
+  padding: 2rem;
+}
+
+.score-big {
+  font-family: 'DM Serif Display', serif;
+  font-size: 4rem;
+  color: var(--accent2);
+  line-height: 1;
+}
+
+.score-label { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+
+.btn-restart {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  border: 2px solid var(--text);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-restart:hover { background: var(--text); color: var(--bg); }
+
+/* Tooltip on bars */
+.chart-wrap { position: relative; }
+.bar-tooltip {
+  position: absolute;
+  background: var(--text);
+  color: var(--bg);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  pointer-events: none;
+  display: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+</style>
+</head>
+<body>
+
+<div class="header-strip">
+  <h1>Binomialverteilung</h1>
+  <div class="formula">P(X = k) = C(n,k) · pᵏ · (1−p)ⁿ⁻ᵏ</div>
+</div>
+
+<nav class="nav">
+  <button class="nav-tab active" onclick="showSection('viz')">📊 Visualisierung</button>
+  <button class="nav-tab" onclick="showSection('calc')">🧮 Rechner</button>
+  <button class="nav-tab" onclick="showSection('quiz')">✏️ Quiz</button>
+</nav>
+
+<div class="main">
+
+  <!-- ===== VIZ ===== -->
+  <div class="section active" id="sec-viz">
+    <div class="card">
+      <div class="card-title">Parameter <span class="tag">interaktiv</span></div>
+      <div class="param-grid">
+        <div class="param-item">
+          <label>n — Versuche <span id="n-val">10</span></label>
+          <input type="range" id="slider-n" min="1" max="30" value="10" oninput="updateViz()">
+        </div>
+        <div class="param-item">
+          <label>p — Trefferwahrscheinlichkeit <span id="p-val">0.40</span></label>
+          <input type="range" id="slider-p" min="0.01" max="0.99" step="0.01" value="0.40" oninput="updateViz()">
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box"><span class="val" id="stat-mu">–</span><div class="lbl">Erwartungswert μ</div></div>
+        <div class="stat-box"><span class="val" id="stat-sigma">–</span><div class="lbl">Std.-abw. σ</div></div>
+        <div class="stat-box"><span class="val" id="stat-mode">–</span><div class="lbl">Modalwert</div></div>
+        <div class="stat-box"><span class="val" id="stat-p95">–</span><div class="lbl">95%-Quantil</div></div>
+      </div>
+
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="tb-pmf" onclick="setChartType('pmf')">P(X = k)</button>
+        <button class="toggle-btn" id="tb-cdf" onclick="setChartType('cdf')">P(X ≤ k)</button>
+        <button class="toggle-btn" id="tb-both" onclick="setChartType('both')">Beides</button>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="chart"></canvas>
+        <div class="bar-tooltip" id="bar-tooltip"></div>
+      </div>
+
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--bar)"></div> P(X = k) — Einzelwahrscheinlichkeit</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent2);opacity:0.5"></div> P(X ≤ k) — Kumuliert</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RECHNER ===== -->
+  <div class="section" id="sec-calc">
+    <div class="card">
+      <div class="card-title">Wahrscheinlichkeit berechnen</div>
+      <div class="calc-grid">
+        <div class="form-group">
+          <label>n — Anzahl Versuche</label>
+          <input type="number" id="c-n" value="10" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label>p — Erfolgswahrscheinlichkeit</label>
+          <input type="number" id="c-p" value="0.3" min="0.001" max="0.999" step="0.001">
+        </div>
+        <div class="form-group">
+          <label>k — Trefferzahl</label>
+          <input type="number" id="c-k" value="3" min="0">
+        </div>
+        <div class="form-group">
+          <label>Gesucht</label>
+          <select id="c-type">
+            <option value="exact">P(X = k) — genau k</option>
+            <option value="leq">P(X ≤ k) — höchstens k</option>
+            <option value="geq">P(X ≥ k) — mindestens k</option>
+            <option value="lt">P(X &lt; k) — weniger als k</option>
+            <option value="gt">P(X &gt; k) — mehr als k</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-calc" onclick="calculate()">Berechnen</button>
+      <div class="result-box" id="result-box">
+        <div class="result-label" id="result-label"></div>
+        <span class="result-val" id="result-val"></span>
+        <div class="result-formula" id="result-formula"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Wertetabelle <span class="tag">P(X = k)</span></div>
+      <div style="overflow-x:auto">
+        <table id="prob-table" style="width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:0.82rem;"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== QUIZ ===== -->
+  <div class="section" id="sec-quiz">
+    <div class="card" id="quiz-card">
+      <div class="quiz-progress" id="quiz-progress"></div>
+      <div class="question-num" id="q-num"></div>
+      <div class="question-text" id="q-text"></div>
+      <div class="question-context" id="q-context" style="display:none"></div>
+      <div class="options" id="q-options"></div>
+      <div class="feedback-box" id="q-feedback"></div>
+      <button class="btn-next" id="btn-next" onclick="nextQuestion()">Weiter →</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// MATH
+// ============================================================
+function logBinom(n, k) {
+  if (k < 0 || k > n) return -Infinity;
+  let r = 0;
+  for (let i = 0; i < k; i++) r += Math.log(n - i) - Math.log(i + 1);
+  return r;
+}
+
+function dbinom(k, n, p) {
+  if (k < 0 || k > n) return 0;
+  if (p === 0) return k === 0 ? 1 : 0;
+  if (p === 1) return k === n ? 1 : 0;
+  return Math.exp(logBinom(n, k) + k * Math.log(p) + (n - k) * Math.log(1 - p));
+}
+
+function pbinom(k, n, p) {
+  let s = 0;
+  for (let i = 0; i <= k; i++) s += dbinom(i, n, p);
+  return Math.min(s, 1);
+}
+
+function quantile(q, n, p) {
+  for (let k = 0; k <= n; k++) if (pbinom(k, n, p) >= q) return k;
+  return n;
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'calc') buildTable();
+  if (id === 'quiz') initQuiz();
+}
+
+// ============================================================
+// VISUALIZATION
+// ============================================================
+let chartType = 'pmf';
+
+function setChartType(t) {
+  chartType = t;
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tb-' + t).classList.add('active');
+  drawChart();
+}
+
+function updateViz() {
+  const n = parseInt(document.getElementById('slider-n').value);
+  const p = parseFloat(document.getElementById('slider-p').value);
+  document.getElementById('n-val').textContent = n;
+  document.getElementById('p-val').textContent = p.toFixed(2);
+
+  const mu = (n * p).toFixed(2);
+  const sigma = Math.sqrt(n * p * (1 - p)).toFixed(3);
+  let mode = Math.floor((n + 1) * p);
+  if (mode > n) mode = n;
+  const q95 = quantile(0.95, n, p);
+
+  document.getElementById('stat-mu').textContent = mu;
+  document.getElementById('stat-sigma').textContent = sigma;
+  document.getElementById('stat-mode').textContent = mode;
+  document.getElementById('stat-p95').textContent = q95;
+
+  drawChart();
+}
+
+function drawChart() {
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  const n = parseInt(document.getElementById('slider-n').value);
+  const p = parseFloat(document.getElementById('slider-p').value);
+
+  const pmf = Array.from({ length: n + 1 }, (_, k) => dbinom(k, n, p));
+  const cdf = pmf.map((_, i) => pmf.slice(0, i + 1).reduce((a, b) => a + b, 0));
+
+  const pad = { top: 20, right: 20, bottom: 40, left: 48 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#e8e0d4';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + ch - (ch * i / 4);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#aaa098';
+    ctx.font = `10px DM Mono, monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText((i / 4 * (chartType === 'pmf' ? Math.max(...pmf) : 1)).toFixed(chartType === 'pmf' ? 3 : 2), pad.left - 6, y + 3);
+  }
+
+  const barW = Math.min(cw / (n + 1) * 0.7, 40);
+  const gap = cw / (n + 1);
+
+  const maxPmf = Math.max(...pmf, 0.001);
+
+  for (let k = 0; k <= n; k++) {
+    const x = pad.left + k * gap + gap / 2;
+    const xBar = x - barW / 2;
+
+    // CDF line/fill
+    if (chartType === 'cdf' || chartType === 'both') {
+      const yC = pad.top + ch - cdf[k] * ch;
+      ctx.fillStyle = 'rgba(42,110,138,0.22)';
+      ctx.fillRect(xBar, yC, barW, pad.top + ch - yC);
+    }
+
+    // PMF bars
+    if (chartType === 'pmf' || chartType === 'both') {
+      const barH = (pmf[k] / maxPmf) * ch;
+      ctx.fillStyle = '#c8401a';
+      ctx.fillRect(xBar, pad.top + ch - barH, barW, barH);
+    }
+
+    // X labels
+    if (n <= 20 || k % 2 === 0) {
+      ctx.fillStyle = '#8a7f72';
+      ctx.font = `10px DM Mono, monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(k, x, H - pad.bottom + 14);
+    }
+  }
+
+  // Axis label
+  ctx.fillStyle = '#8a7f72';
+  ctx.font = `11px DM Sans, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('k', W / 2, H - 4);
+
+  // Store for tooltip
+  canvas._meta = { n, p, pmf, cdf, pad, gap, barW, ch, W };
+}
+
+// Tooltip
+document.getElementById('chart').addEventListener('mousemove', function(e) {
+  const meta = this._meta;
+  if (!meta) return;
+  const rect = this.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const { n, pmf, cdf, pad, gap, barW, ch, W } = meta;
+  const tooltip = document.getElementById('bar-tooltip');
+
+  for (let k = 0; k <= n; k++) {
+    const x = pad.left + k * gap + gap / 2;
+    if (Math.abs(mx - x) < gap / 2) {
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `k=${k} &nbsp;|&nbsp; P(X=k)=${pmf[k].toFixed(4)} &nbsp;|&nbsp; P(X≤k)=${cdf[k].toFixed(4)}`;
+      let tx = e.clientX - rect.left + 10;
+      if (tx + 220 > W) tx = e.clientX - rect.left - 230;
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top = (e.clientY - rect.top - 32) + 'px';
+      return;
+    }
+  }
+  tooltip.style.display = 'none';
+});
+document.getElementById('chart').addEventListener('mouseleave', () => {
+  document.getElementById('bar-tooltip').style.display = 'none';
+});
+
+// ============================================================
+// RECHNER
+// ============================================================
+function calculate() {
+  const n = parseInt(document.getElementById('c-n').value);
+  const p = parseFloat(document.getElementById('c-p').value);
+  const k = parseInt(document.getElementById('c-k').value);
+  const type = document.getElementById('c-type').value;
+
+  let result, label, formula;
+
+  if (isNaN(n) || isNaN(p) || isNaN(k) || p < 0 || p > 1 || k < 0 || n < 1) {
+    alert('Bitte gültige Werte eingeben.'); return;
+  }
+
+  if (type === 'exact') {
+    result = dbinom(k, n, p);
+    label = `P(X = ${k})`;
+    formula = `C(${n},${k}) · ${p}^${k} · ${(1-p).toFixed(3)}^${n-k}`;
+  } else if (type === 'leq') {
+    result = pbinom(k, n, p);
+    label = `P(X ≤ ${k})`;
+    formula = `Σ P(X=i) für i = 0 bis ${k}`;
+  } else if (type === 'geq') {
+    result = 1 - pbinom(k - 1, n, p);
+    label = `P(X ≥ ${k})`;
+    formula = `1 − P(X ≤ ${k-1})`;
+  } else if (type === 'lt') {
+    result = pbinom(k - 1, n, p);
+    label = `P(X < ${k})`;
+    formula = `P(X ≤ ${k-1})`;
+  } else {
+    result = 1 - pbinom(k, n, p);
+    label = `P(X > ${k})`;
+    formula = `1 − P(X ≤ ${k})`;
+  }
+
+  const box = document.getElementById('result-box');
+  document.getElementById('result-label').textContent = label + ` bei B(${n}, ${p})`;
+  document.getElementById('result-val').textContent = result.toFixed(6);
+  document.getElementById('result-formula').textContent = formula;
+  box.style.display = 'block';
+  buildTable();
+}
+
+function buildTable() {
+  const n = parseInt(document.getElementById('c-n').value) || 10;
+  const p = parseFloat(document.getElementById('c-p').value) || 0.3;
+  const table = document.getElementById('prob-table');
+  let html = `<tr style="background:var(--surface2);border-bottom:2px solid var(--border)">
+    <th style="padding:0.4rem 0.75rem;text-align:left;font-weight:600;color:var(--muted);font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase">k</th>
+    <th style="padding:0.4rem 0.75rem;text-align:right;font-weight:600;color:var(--muted);font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase">P(X=k)</th>
+    <th style="padding:0.4rem 0.75rem;text-align:right;font-weight:600;color:var(--muted);font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase">P(X≤k)</th>
+  </tr>`;
+
+  let cum = 0;
+  for (let k = 0; k <= n; k++) {
+    const d = dbinom(k, n, p);
+    cum = Math.min(cum + d, 1);
+    const hi = d === Math.max(...Array.from({length:n+1},(_,i)=>dbinom(i,n,p)));
+    html += `<tr style="border-bottom:1px solid var(--border);${hi?'background:#fff8f0':''}">
+      <td style="padding:0.35rem 0.75rem;color:var(--accent2);font-weight:500">${k}</td>
+      <td style="padding:0.35rem 0.75rem;text-align:right;${hi?'color:var(--accent);font-weight:600':''}">${d.toFixed(5)}</td>
+      <td style="padding:0.35rem 0.75rem;text-align:right">${cum.toFixed(5)}</td>
+    </tr>`;
+  }
+  table.innerHTML = html;
+}
+
+// ============================================================
+// QUIZ
+// ============================================================
+const questions = [
+  {
+    text: "Eine faire Münze wird 8-mal geworfen. Wie lautet die Verteilung der Anzahl Köpfe?",
+    context: "Faire Münze: p = 0.5, n = 8 Würfe",
+    options: ["B(8, 0.5)", "B(0.5, 8)", "N(4, 2)", "Poisson(4)"],
+    correct: 0,
+    feedback: "Richtig! X ~ B(n, p) = B(8, 0.5). Notation: erst n (Versuche), dann p (Erfolgswahrsch.)."
+  },
+  {
+    text: "Was ist der Erwartungswert E[X] einer Binomialverteilung B(n, p)?",
+    options: ["n · p", "n · p · (1−p)", "√(n·p·(1−p))", "n / p"],
+    correct: 0,
+    feedback: "Korrekt! E[X] = n·p. Bei B(10, 0.4) z.B. E[X] = 4."
+  },
+  {
+    text: "X ~ B(5, 0.3). Wie gross ist P(X = 2)?",
+    context: "P(X=k) = C(n,k) · p^k · (1−p)^(n−k)",
+    options: [
+      `C(5,2) · 0.3² · 0.7³ ≈ 0.3087`,
+      `C(5,2) · 0.3³ · 0.7² ≈ 0.1323`,
+      `0.3² ≈ 0.09`,
+      `C(5,2) · 0.5² · 0.5³ ≈ 0.3125`
+    ],
+    correct: 0,
+    feedback: "Richtig! C(5,2)=10, 10 · 0.09 · 0.343 = 0.3087."
+  },
+  {
+    text: "Welche der folgenden Bedingungen muss NICHT erfüllt sein, damit X ~ B(n,p) gilt?",
+    options: [
+      "Die Versuche müssen voneinander abhängig sein",
+      "Jeder Versuch hat nur zwei mögliche Ausgänge",
+      "Die Erfolgswahrscheinlichkeit p ist bei jedem Versuch gleich",
+      "Die Anzahl der Versuche n ist fest"
+    ],
+    correct: 0,
+    feedback: "Genau! Binomialversuche müssen UNABHÄNGIG sein — Abhängigkeit verletzt die Binomialannahme."
+  },
+  {
+    text: "X ~ B(10, 0.6). Was ist die Standardabweichung σ?",
+    context: "Varianz: Var(X) = n·p·(1−p)",
+    options: [
+      "√(10·0.6·0.4) ≈ 1.549",
+      "10·0.6·0.4 = 2.4",
+      "10·0.6 = 6",
+      "√(10·0.6) ≈ 2.449"
+    ],
+    correct: 0,
+    feedback: "Richtig! σ = √(n·p·(1−p)) = √(10·0.6·0.4) = √2.4 ≈ 1.549."
+  },
+  {
+    text: "Eine Produktionslinie hat eine Ausschussquote von 5%. Es werden 20 Teile geprüft. Wie gross ist P(kein Ausschuss)?",
+    context: "X ~ B(20, 0.05), gesucht P(X = 0)",
+    options: [
+      "0.95²⁰ ≈ 0.3585",
+      "0.05²⁰ ≈ 0",
+      "1 − 0.05·20 = 0",
+      "C(20,0) · 0.05⁰ = 1"
+    ],
+    correct: 0,
+    feedback: "Korrekt! P(X=0) = C(20,0)·0.05⁰·0.95²⁰ = 0.95²⁰ ≈ 0.3585."
+  },
+  {
+    text: "X ~ B(n, p). Bei welchem Wert von p ist die Varianz am grössten (für festes n)?",
+    options: ["p = 0.5", "p = 0.25", "p = 0.75", "p = 1"],
+    correct: 0,
+    feedback: "Richtig! Var(X) = n·p·(1−p) ist maximal bei p = 0.5, da dann p·(1−p) = 0.25 maximal ist."
+  },
+  {
+    text: "P(X ≤ 3) bei X ~ B(6, 0.4) — was bezeichnet dieser Wert?",
+    options: [
+      "Die kumulative Wahrscheinlichkeit für höchstens 3 Treffer",
+      "Die Wahrscheinlichkeit für genau 3 Treffer",
+      "Die Wahrscheinlichkeit für mindestens 3 Treffer",
+      "Der Erwartungswert"
+    ],
+    correct: 0,
+    feedback: "Genau! P(X ≤ k) = CDF (kumulative Verteilungsfunktion) — Summe aller Einzelwahrscheinlichkeiten bis k."
+  }
+];
+
+let qIdx = 0;
+let qScore = 0;
+let qAnswered = false;
+let qResults = [];
+
+function initQuiz() {
+  qIdx = 0; qScore = 0; qAnswered = false; qResults = [];
+  renderQuestion();
+}
+
+function renderQuestion() {
+  if (qIdx >= questions.length) {
+    showResult(); return;
+  }
+  const q = questions[qIdx];
+  qAnswered = false;
+
+  // Progress
+  const prog = document.getElementById('quiz-progress');
+  prog.innerHTML = questions.map((_, i) => {
+    let cls = 'progress-dot';
+    if (i < qIdx) cls += qResults[i] ? ' done-correct' : ' done-wrong';
+    else if (i === qIdx) cls += ' current';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+
+  document.getElementById('q-num').textContent = `Frage ${qIdx + 1} von ${questions.length}`;
+  document.getElementById('q-text').textContent = q.text;
+
+  const ctx = document.getElementById('q-context');
+  if (q.context) { ctx.textContent = q.context; ctx.style.display = 'block'; }
+  else { ctx.style.display = 'none'; }
+
+  const letters = ['A', 'B', 'C', 'D'];
+  document.getElementById('q-options').innerHTML = q.options.map((opt, i) =>
+    `<button class="option-btn" onclick="selectAnswer(${i})">
+      <span class="opt-letter">${letters[i]}</span>
+      <span>${opt}</span>
+    </button>`
+  ).join('');
+
+  document.getElementById('q-feedback').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+}
+
+function selectAnswer(i) {
+  if (qAnswered) return;
+  qAnswered = true;
+  const q = questions[qIdx];
+  const correct = i === q.correct;
+  qResults.push(correct);
+  if (correct) qScore++;
+
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach((b, idx) => {
+    b.disabled = true;
+    if (idx === q.correct) b.classList.add('correct');
+    else if (idx === i && !correct) b.classList.add('wrong');
+  });
+
+  const fb = document.getElementById('q-feedback');
+  fb.className = 'feedback-box ' + (correct ? 'correct' : 'wrong');
+  fb.textContent = (correct ? '✓ ' : '✗ ') + q.feedback;
+  fb.style.display = 'block';
+  document.getElementById('btn-next').style.display = 'inline-block';
+}
+
+function nextQuestion() {
+  qIdx++;
+  renderQuestion();
+}
+
+function showResult() {
+  const pct = Math.round(qScore / questions.length * 100);
+  const msgs = [
+    [0, 49, "Nochmal üben! 💪 Schau dir die Visualisierung und den Rechner nochmal an."],
+    [50, 74, "Solide Basis! 👍 Einige Konzepte noch vertiefen."],
+    [75, 89, "Sehr gut! 🎯 Du beherrschst die Binomialverteilung gut."],
+    [90, 100, "Ausgezeichnet! 🏆 Perfektes Verständnis der Binomialverteilung!"]
+  ];
+  const msg = msgs.find(([lo, hi]) => pct >= lo && pct <= hi)[2];
+
+  document.getElementById('quiz-card').innerHTML = `
+    <div class="quiz-score-card">
+      <div class="score-big">${qScore}/${questions.length}</div>
+      <div class="score-label">${pct}% korrekt</div>
+      <p style="margin-bottom:1.5rem;color:var(--muted);font-size:0.9rem">${msg}</p>
+      <button class="btn-restart" onclick="initQuiz()">↺ Nochmal</button>
+    </div>`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  updateViz();
+  buildTable();
+  initQuiz();
+});
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('sec-viz').classList.contains('active')) drawChart();
+});
+</script>
+</body>
+</html>
